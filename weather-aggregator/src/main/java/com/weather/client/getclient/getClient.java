@@ -33,7 +33,8 @@ public class GetClient extends AbstractClient {
         }
 
         HashMap<String,String> headers = new HashMap<>();
-        headers.put("Content-Type", "application/json");
+        // No Content-Type or Content-Length needed for a GET request
+        // headers.put("Content-Type", "application/json");
 
         Request request = new Request("GET", path, body, headers);
         return request;
@@ -45,7 +46,7 @@ public class GetClient extends AbstractClient {
         String body = response.getBody();
         HashMap<String, String> headers = response.getHeaders();
 
-        System.out.println("--- Response --- ");
+        System.out.println("--- Get Client Response --- ");
         System.out.println("Status: " + status);
 
         System.out.println("Headers:");

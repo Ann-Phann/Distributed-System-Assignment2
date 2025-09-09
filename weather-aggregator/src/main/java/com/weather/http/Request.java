@@ -16,9 +16,7 @@ public class Request implements Serializable {
         this.headers = headers;
     }
     // getter and setter 
-    public HashMap<String, String> getHeaders() {
-        return headers;
-    }
+    public HashMap<String, String> getHeaders() { return headers; }
 
     public void setHeaders(String key, String value) {
         headers.put(key, value);
@@ -28,21 +26,15 @@ public class Request implements Serializable {
         this.method = method;
     }
 
-    public String getMethod() {
-        return method;
-    }
+    public String getMethod() { return method; }
 
-    public String getBody() {
-        return body;
-    }
+    public String getBody() { return body; }
 
     public void setBody(String body) {
         this.body = body;
     }
 
-    public String getPath() {
-        return path;
-    }
+    public String getPath() { return path; }
 
     public void setPath(String path) {
         this.path = path;
