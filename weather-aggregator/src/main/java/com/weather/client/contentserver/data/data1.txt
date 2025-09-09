@@ -1,0 +1,6 @@
+id:ID001
+name:Adelaide (West Terrace /  ngayirdapira)
+state: SA
+time_zone:CST
+air_temp:13.3
+cloud:Partly cloudy
