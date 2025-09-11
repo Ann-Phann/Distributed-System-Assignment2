@@ -1,0 +1,4 @@
+id:ID002
+location:HCMC
+temperature:25
+cloud:Raining

@@ -39,7 +39,7 @@ public class RequestListener implements Runnable {
 
                     // Create a RequestNode and add it to the shared queue
                     RequestNode requestNode = new RequestNode(clientSocket, request);
-                    requestQueue.put(requestNode);
+                    requestQueue.put(requestNode); // this will block adding in if the queue is full
                     System.out.println("Request from " + clientSocket.getInetAddress() + " added to queue. Queue size: " + requestQueue.size());
 
                 } catch (SocketTimeoutException e) {
@@ -51,6 +51,7 @@ public class RequestListener implements Runnable {
         } catch (IOException e) {
             System.err.println("Listener thread failed to initialize or experienced a fatal error: " + e.getMessage());
         } finally {
+            // cleanup the whole server
             try {
                 if (serverSocket != null) {
                     serverSocket.close();
