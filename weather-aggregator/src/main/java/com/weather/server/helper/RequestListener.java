@@ -15,11 +15,13 @@ public class RequestListener implements Runnable {
     private final AggregationServer server;
     private final ServerSocket serverSocket;
     private final PriorityBlockingQueue<RequestNode> requestQueue;
+    private Storage storage;
 
-    public RequestListener(AggregationServer server, ServerSocket serverSocket, PriorityBlockingQueue<RequestNode> requestQueue) {
+    public RequestListener(AggregationServer server, ServerSocket serverSocket, PriorityBlockingQueue<RequestNode> requestQueue, Storage storage) {
         this.server = server;
         this.serverSocket = serverSocket;
         this.requestQueue = requestQueue;
+        this.storage = storage;
     }
 
     // public RequestListener(ServerSocket serverSocket, PriorityBlockingQueue<RequestNode> requestQueue) {
@@ -53,6 +55,13 @@ public class RequestListener implements Runnable {
                     // update server clock and assign new clock value for RequestNode
                     int newClockValue = this.server.getClock().updateAndGet(clientLamportValue);
 
+                    // add Storage logic for PUT request: record the request before put in the request queue
+                    if ("PUT".equalsIgnoreCase(request.getMethod())) {
+                        String stationId = String.valueOf(request.getHeaders().get("Station-Id"));
+                        String jsonBody = request.getBody();
+                        this.storage.logPutRequest(String.valueOf(newClockValue), stationId, jsonBody);
+                    }
+
                     // update Request object with new time 
                     request.getHeaders().put("Lamport-Clock", String.valueOf(newClockValue));
 
@@ -65,6 +74,9 @@ public class RequestListener implements Runnable {
                     // This is expected and allows the loop to check the thread's interruption status
                 } catch (IOException e) {
                     System.err.println("Error accepting or processing client connection: " + e.getMessage());
+                } catch (InterruptedException e) {
+                    System.err.println("ERROR: Invalid lamport clock value. Might be cannot parse newClockValue to String");
+                    e.printStackTrace();
                 }
             }
         } catch (IOException e) {

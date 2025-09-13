@@ -47,6 +47,7 @@ public class ContentServer extends AbstractClient {
         HashMap<String, String> headers = new HashMap<>();
         headers.put("Content-Type", "application/json");
         headers.put("Content-Length", String.valueOf(jsonBody.getBytes().length));
+        headers.put("Station-Id", this.id);
 
         // build the request 
         Request request = new Request("PUT", "/weather/" + this.id, jsonBody, headers);
@@ -89,7 +90,7 @@ public class ContentServer extends AbstractClient {
             System.err.println("Missing file path data");
             return "";
         } 
-        
+         
         HashMap<String, String> weatherData = new HashMap<>();
         File file = new File(dir + "/" + fileName);
 

@@ -35,6 +35,7 @@ public class AggregationServer implements Runnable {
         this.clock = new LamportClock();
         this.weatherData = new ConcurrentHashMap<>();
         this.fileLock = new Semaphore(1, true); // ensure only 1 thread writing to the Storage
+        this.storage = new Storage(this, this.fileLock);
     }
 
     @Override
@@ -44,9 +45,12 @@ public class AggregationServer implements Runnable {
         try {
             this.serverSocket = new ServerSocket(this.port);
 
+            // perform crash recovery on startup
+            this.storage.loadAndRecover();
+
             // Start Producer thread (Listener)
             // RequestListener listener = new RequestListener(this, serverSocket, requestQueue);
-            RequestListener listener = new RequestListener(this, serverSocket, requestQueue);
+            RequestListener listener = new RequestListener(this, serverSocket, requestQueue, storage);
             new Thread(listener).start();
 
             // start the Consumer thread.
@@ -58,7 +62,7 @@ public class AggregationServer implements Runnable {
                     RequestNode requestNode = requestQueue.take();
                     // Pass the RequestNode to a handler to process it.
                     // This creates a temporary object to handle the request logic.
-                    RequestHandler handler = new RequestHandler(requestNode, this);
+                    RequestHandler handler = new RequestHandler(requestNode, this, storage);
                     handler.run();
                 }
             } catch (InterruptedException e) {
@@ -101,6 +105,10 @@ public class AggregationServer implements Runnable {
 
     public LamportClock getClock () {
         return clock;
+    }
+
+    public Storage getStorage() {
+        return storage;
     }
     public static void main(String[] args) {
         if (args.length > 1) {

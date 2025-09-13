@@ -4,9 +4,9 @@ import java.io.IOException;
 import java.net.Socket;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Semaphore;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import com.weather.http.Request;
 import com.weather.http.Response;
 import com.weather.http.StatusCode;
@@ -21,10 +21,12 @@ import com.weather.server.AggregationServer;
 public class RequestHandler {
     private RequestNode eachRequestNode;
     private AggregationServer server;
+    private Storage storage;
 
-    public RequestHandler(RequestNode node, AggregationServer server) {
+    public RequestHandler(RequestNode node, AggregationServer server, Storage storage) {
         this.eachRequestNode = node;
         this.server = server;
+        this.storage = storage;
     }
     
     public void run(){
@@ -66,6 +68,8 @@ public class RequestHandler {
         ConcurrentHashMap<String, String> weatherData = server.getWeatherData();
         Semaphore fileLock = server.getFileLock();
         
+        // get the Lamport Clock from RequestNode to serve as uniqueId for Storage
+        String uniqueId = String.valueOf(eachRequestNode.getLamportClockValue());
         try {
             fileLock.acquire();
             // the path format is /weather/<StationID>
@@ -83,6 +87,9 @@ public class RequestHandler {
             response.addHeaders("Lamport-Clock", String.valueOf(server.getClock().get()));
 
             ResponseSender.sendResponse(clientSocket, response);
+
+            // mark in Storage as completed (COMMIT)
+            storage.logCompletion(uniqueId);
 
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
