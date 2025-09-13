@@ -12,20 +12,20 @@ import com.weather.http.Request;
 import com.weather.server.AggregationServer;
 
 public class RequestListener implements Runnable {
-    // private final AggregationServer server;
+    private final AggregationServer server;
     private final ServerSocket serverSocket;
     private final PriorityBlockingQueue<RequestNode> requestQueue;
 
-    // public RequestListener(AggregationServer server, ServerSocket serverSocket, PriorityBlockingQueue<RequestNode> requestQueue) {
-    //     this.server = server;
-    //     this.serverSocket = serverSocket;
-    //     this.requestQueue = requestQueue;
-    // }
-
-    public RequestListener(ServerSocket serverSocket, PriorityBlockingQueue<RequestNode> requestQueue) {
+    public RequestListener(AggregationServer server, ServerSocket serverSocket, PriorityBlockingQueue<RequestNode> requestQueue) {
+        this.server = server;
         this.serverSocket = serverSocket;
         this.requestQueue = requestQueue;
     }
+
+    // public RequestListener(ServerSocket serverSocket, PriorityBlockingQueue<RequestNode> requestQueue) {
+    //     this.serverSocket = serverSocket;
+    //     this.requestQueue = requestQueue;
+    // }
 
     @Override
     public void run() {
@@ -43,8 +43,21 @@ public class RequestListener implements Runnable {
                     BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
                     Request request = RequestParser.parse(in);
 
-                    // Create a RequestNode and add it to the shared queue
-                    RequestNode requestNode = new RequestNode(clientSocket, request);
+                    // Check for Lamport clock header and update the server clock
+                    int clientLamportValue = 0;
+                    String lamportHeader = request.getHeaders().get("Lamport-Clock");
+                    if (lamportHeader != null) {
+                        clientLamportValue = Integer.parseInt(lamportHeader);
+                    }
+
+                    // update server clock and assign new clock value for RequestNode
+                    int newClockValue = this.server.getClock().updateAndGet(clientLamportValue);
+
+                    // update Request object with new time 
+                    request.getHeaders().put("Lamport-Clock", String.valueOf(newClockValue));
+
+                    // Create a RequestNode with new timestamp and add it to the shared queue
+                    RequestNode requestNode = new RequestNode(clientSocket, request, newClockValue);
                     requestQueue.put(requestNode); // this will block adding in if the queue is full
                     System.out.println("Request from " + clientSocket.getInetAddress() + " added to queue. Queue size: " + requestQueue.size());
 

@@ -78,6 +78,10 @@ public class RequestHandler {
             response.setBody("Success: Data saved for " + id);
             response.addHeaders("Content-Type", "text/plain");
             response.addHeaders("Content-Length", String.valueOf(response.getBody().length()));
+
+            // add Lamport Clock into response headers
+            response.addHeaders("Lamport-Clock", String.valueOf(server.getClock().get()));
+
             ResponseSender.sendResponse(clientSocket, response);
 
         } catch (InterruptedException e) {
@@ -123,6 +127,9 @@ public class RequestHandler {
                 // invalid path 
                 response = new Response(StatusCode.BAD_REQUEST);
             }
+
+            // add the server lamport clock to response headers
+            response.addHeaders("Lamport-Clock", String.valueOf(server.getClock().get()));
 
             ResponseSender.sendResponse(socket, response);
             

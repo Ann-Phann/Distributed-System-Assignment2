@@ -46,7 +46,7 @@ public class AggregationServer implements Runnable {
 
             // Start Producer thread (Listener)
             // RequestListener listener = new RequestListener(this, serverSocket, requestQueue);
-            RequestListener listener = new RequestListener(serverSocket, requestQueue);
+            RequestListener listener = new RequestListener(this, serverSocket, requestQueue);
             new Thread(listener).start();
 
             // start the Consumer thread.
@@ -99,6 +99,9 @@ public class AggregationServer implements Runnable {
         return fileLock;
     }
 
+    public LamportClock getClock () {
+        return clock;
+    }
     public static void main(String[] args) {
         if (args.length > 1) {
             System.err.println("ERROR: Invalid numbers of arguments. Usage: <port number>");

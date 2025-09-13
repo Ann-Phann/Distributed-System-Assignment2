@@ -18,5 +18,9 @@ public class LamportClock implements Serializable {
     public synchronized void increment() {
         this.time++;
     }
+    public synchronized int updateAndGet(int time) {
+        update(time);
+        return this.get();
+    }
     
 }
