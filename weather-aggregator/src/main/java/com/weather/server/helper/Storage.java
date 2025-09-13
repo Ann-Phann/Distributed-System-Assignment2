@@ -105,8 +105,8 @@ public class Storage {
         } else {
             System.out.println("Found " + incompleteRequests.size() + " incomplete requests. Re-processing...");
             for (String uniqueId : incompleteRequests.keySet()) {
-                String body = incompleteRequests.get(uniqueId);
-                server.getWeatherData().put(uniqueId, body);
+                String bodyOfIncompleteRequest = incompleteRequests.get(uniqueId);
+                server.getWeatherData().put(uniqueId, new ExpirableData(bodyOfIncompleteRequest));
 
                 // Re-logging the completion to ensure consistency after recovery
                 logCompletion(uniqueId);

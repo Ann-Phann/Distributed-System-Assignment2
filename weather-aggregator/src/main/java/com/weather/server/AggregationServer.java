@@ -1,15 +1,20 @@
 package com.weather.server;
 
 import com.weather.clock.LamportClock;
-import com.weather.http.Request;
+import com.weather.server.handler.DataExpirer;
+import com.weather.server.handler.RequestHandler;
+import com.weather.server.handler.RequestListener;
 import com.weather.server.helper.*;
 
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.util.Comparator;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
 import java.util.concurrent.PriorityBlockingQueue;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 
 /*
  * Primary job is to act as listener and dispatcher. It sits in a loop, waiting for new client connections to arrive.
@@ -22,12 +27,13 @@ public class AggregationServer implements Runnable {
     private int port; // default = 4567 
     private PriorityBlockingQueue<RequestNode> requestQueue; // store both PUT and GET request
     private LamportClock clock;
-    private ConcurrentHashMap<String, String> weatherData; 
+    private ConcurrentHashMap<String, ExpirableData> weatherData; 
     private ServerSocket serverSocket;
     private final Semaphore fileLock;
 
     
     private Storage storage; // for persistence storage
+    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
     public AggregationServer(int port) {
         this.port = port;
@@ -48,6 +54,9 @@ public class AggregationServer implements Runnable {
             // perform crash recovery on startup
             this.storage.loadAndRecover();
 
+            // Schedule the data expiration task to run every 15 seconds
+            scheduler.scheduleAtFixedRate(new DataExpirer(weatherData, fileLock), 15, 15, TimeUnit.SECONDS);
+            
             // Start Producer thread (Listener)
             // RequestListener listener = new RequestListener(this, serverSocket, requestQueue);
             RequestListener listener = new RequestListener(this, serverSocket, requestQueue, storage);
@@ -85,6 +94,7 @@ public class AggregationServer implements Runnable {
         try {
             if (serverSocket != null) {
                 serverSocket.close();
+                scheduler.shutdown();
             }
             isRunning = false;
             
@@ -95,7 +105,7 @@ public class AggregationServer implements Runnable {
     }
 
     // getter and setter 
-    public ConcurrentHashMap<String, String> getWeatherData() {
+    public ConcurrentHashMap<String, ExpirableData> getWeatherData() {
         return weatherData;
     }
 
@@ -126,9 +136,19 @@ public class AggregationServer implements Runnable {
                     return; // Exit if the format is wrong
                 }
             } 
-
-            Thread server = new Thread(new AggregationServer(port));
+            AggregationServer aggregationServer = new AggregationServer(port);
+            Thread server = new Thread(aggregationServer);
             server.start();
+
+            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                System.out.println("Shutting down gracefully...");
+                aggregationServer.close();
+                try {
+                    server.join(); // Wait for the main server thread, the one that run AS to finish
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }));
         } catch (NumberFormatException e) {
             System.err.println("ERROR: Invalid port number format. Please enter a valid integer.");
         } catch (Exception e) {

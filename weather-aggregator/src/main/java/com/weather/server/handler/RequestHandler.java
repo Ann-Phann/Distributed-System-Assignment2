@@ -1,4 +1,4 @@
-package com.weather.server.helper;
+package com.weather.server.handler;
 
 import java.io.IOException;
 import java.net.Socket;
@@ -11,6 +11,10 @@ import com.weather.http.Request;
 import com.weather.http.Response;
 import com.weather.http.StatusCode;
 import com.weather.server.AggregationServer;
+import com.weather.server.helper.ExpirableData;
+import com.weather.server.helper.RequestNode;
+import com.weather.server.helper.ResponseSender;
+import com.weather.server.helper.Storage;
 
 /* 
  * Not a thread itself
@@ -65,7 +69,7 @@ public class RequestHandler {
     }
 
     public void handlePutRequest(Request request, Socket clientSocket) throws IOException {
-        ConcurrentHashMap<String, String> weatherData = server.getWeatherData();
+        ConcurrentHashMap<String, ExpirableData> weatherData = server.getWeatherData();
         Semaphore fileLock = server.getFileLock();
         
         // get the Lamport Clock from RequestNode to serve as uniqueId for Storage
@@ -74,7 +78,7 @@ public class RequestHandler {
             fileLock.acquire();
             // the path format is /weather/<StationID>
             String id = request.getPath().substring(request.getPath().lastIndexOf('/') + 1);
-            weatherData.put(id, request.getBody());
+            weatherData.put(id, new ExpirableData(request.getBody()));
             System.out.println("PUT request for " + id + " handled. Data stored.");
 
             // Send a 200 OK response
@@ -99,7 +103,7 @@ public class RequestHandler {
     }
 
     private void handleGetRequest(Request request, Socket socket) throws IOException {
-        ConcurrentHashMap<String, String> weatherData = server.getWeatherData();
+        ConcurrentHashMap<String, ExpirableData> weatherData = server.getWeatherData();
         Semaphore fileLock = server.getFileLock();
 
         try {
@@ -110,14 +114,14 @@ public class RequestHandler {
             if (path.matches("/weather/.+")) {
                 // format path: "/weather/<stationId>"
                 String id = path.substring(path.lastIndexOf('/') + 1);
-                String data = weatherData.get(id);
+                ExpirableData data = weatherData.get(id);
 
                 if (data != null) {
                     // found the data for a specific station
                     response = new Response(StatusCode.OK); 
-                    response.setBody(data);
+                    response.setBody(data.getJsonBody());
                     response.addHeaders("Content-Type", "application/json");
-                    response.addHeaders("Content-Length", String.valueOf(data.length()));
+                    response.addHeaders("Content-Length", String.valueOf(data.getJsonBody().length()));
                 } else {
                     response = new Response(StatusCode.NOT_FOUND);
                 }

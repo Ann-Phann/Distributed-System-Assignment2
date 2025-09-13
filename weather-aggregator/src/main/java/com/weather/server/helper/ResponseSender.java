@@ -17,7 +17,7 @@ public class ResponseSender {
 
         {"location":"London","temperature":22.5,"wind_speed":15}
      */
-    protected static void sendResponse(Socket clientSocket, Response response) throws IOException {
+    public static void sendResponse(Socket clientSocket, Response response) throws IOException {
         /*
          * True: the auto-flush feature. It ensures that every time call println(), the data is immediately sent over the network to the client. 
          * Without this, the data might remain buffered on the server side, and the client would not receive the response.
