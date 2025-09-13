@@ -8,6 +8,8 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.net.SocketException;
+import java.net.SocketTimeoutException;
 
 public abstract class AbstractClient {
     protected String hostname;
@@ -56,24 +58,48 @@ public abstract class AbstractClient {
 
     /*
      * this will orchestrate the entire communication. it will call the createRequest(), send the request then call showResponse() to handle server's reply.
+     * retry mechanism: will try to send the request 3 times before failing
      */
     public void requestAndResponse() throws ClassNotFoundException {
-        try {
-            connect();
+        final int MAX_ATTEMPTS = 3;
+        for (int attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+            try {
+            connect(); // connect to the server
+
+            // initialise streams
             outputStream = new ObjectOutputStream(socket.getOutputStream());
             inputStream = new ObjectInputStream(socket.getInputStream());
 
+            // Create and send request
             Request request = createRequest();
             sendRequest(request);
 
+            // wait for and show the response
             Response response = getResponse();
             showResponse(response);
 
-        } catch (IOException | InterruptedException e) {
-            System.err.println("ERROR: An error occur during communication: " + e.getMessage());
-            e.printStackTrace();
-        } finally {
-            stop();
+            return; // cause to here everything is completed
+
+            } catch (SocketTimeoutException | SocketException e) {
+                // This handles both connection timeouts and a closed socket, which indicate a network failure or server crash.
+                System.err.println("Communication error (attempt " + (attempt + 1) + "/" + MAX_ATTEMPTS + "): " + e.getMessage());
+                if (attempt < MAX_ATTEMPTS - 1) {
+                    System.out.println("Retrying request...");
+                    // Clean up and prepare for the next attempt
+                    stop(); 
+                } else {
+                    System.err.println("Failed to get a response after " + MAX_ATTEMPTS + " attempts. Aborting.");
+                    e.printStackTrace();
+                    break;
+                }
+            
+            } catch (IOException | InterruptedException e) {
+                System.err.println("ERROR: An error occur during communication: " + e.getMessage());
+                e.printStackTrace();
+                break;
+            } finally {
+                stop();
+            }
         }
     }
         
@@ -108,14 +134,17 @@ public abstract class AbstractClient {
         // wait for and read the response object from the server
         Response response = (Response) inputStream.readObject();
 
-        // get the server's Lamport Clock from the response header
-        int receivedClock = Integer.parseInt(response.getHeaders().get("Lamport-Clock"));
+        String lamportHeader = response.getHeaders().get("Lamport-Clock");
+        if (lamportHeader != null) {
+            // get the server's Lamport Clock from the response header
+            int receivedClock = Integer.parseInt(lamportHeader);
+            // update the local clock to match 
+            clock.update(receivedClock);
+            System.out.println("Received response. Update clock to: " + clock.get());
 
-        // update the local clock to match 
-        clock.update(receivedClock);
-
-        System.out.println("Received response. Update clock to: " + clock.get());
-
+        } else {
+            System.err.println("ERROR: Received response without a Lamport clock header. Local clock not updated.");
+        }
         return response;
     }
 
