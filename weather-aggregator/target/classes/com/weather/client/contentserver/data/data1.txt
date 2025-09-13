@@ -1,5 +1,5 @@
 id:ID001
-name:Adelaide (West Terrace /  ngayirdapira)
+location:Adelaide
 state: SA
 temperature:13.3
 cloud:Partly cloudy

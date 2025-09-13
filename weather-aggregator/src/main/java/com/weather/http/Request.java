@@ -18,7 +18,7 @@ public class Request implements Serializable {
     // getter and setter 
     public HashMap<String, String> getHeaders() { return headers; }
 
-    public void setHeaders(String key, String value) {
+    public void addHeaders(String key, String value) {
         headers.put(key, value);
     }
 

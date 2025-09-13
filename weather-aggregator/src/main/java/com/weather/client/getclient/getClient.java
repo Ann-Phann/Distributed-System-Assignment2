@@ -29,7 +29,7 @@ public class GetClient extends AbstractClient {
         if (this.stationId != null && !this.stationId.isEmpty()) {
             path = "/weather/" + this.stationId;
         } else {
-            path = "/weather/";
+            path = "/weather/"; // request all weather data
         }
 
         HashMap<String,String> headers = new HashMap<>();
@@ -42,7 +42,7 @@ public class GetClient extends AbstractClient {
 
     @Override
     protected void showResponse(Response response) {
-        int status = response.getStatus();
+        int status = response.getStatusCode();
         String body = response.getBody();
         HashMap<String, String> headers = response.getHeaders();
 

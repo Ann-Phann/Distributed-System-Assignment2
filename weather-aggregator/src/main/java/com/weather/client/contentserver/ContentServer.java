@@ -49,7 +49,7 @@ public class ContentServer extends AbstractClient {
         headers.put("Content-Length", String.valueOf(jsonBody.getBytes().length));
 
         // build the request 
-        Request request = new Request("PUT", "weather.json", jsonBody, headers);
+        Request request = new Request("PUT", "/weather/" + this.id, jsonBody, headers);
 
         return request;
     }
@@ -57,7 +57,7 @@ public class ContentServer extends AbstractClient {
     @Override
     protected void showResponse(Response response) {
 
-        int status = response.getStatus();
+        int status = response.getStatusCode();
         String body = response.getBody();
         HashMap<String, String> headers = response.getHeaders();
 

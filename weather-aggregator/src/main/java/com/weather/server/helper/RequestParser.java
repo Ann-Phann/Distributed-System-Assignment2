@@ -3,7 +3,6 @@ package com.weather.server.helper;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.Map;
 
 import com.weather.http.Request;
 
@@ -59,7 +58,6 @@ public class RequestParser {
             }
         }
 
-        // Assuming your Request class has a constructor or setter methods for these fields.
         return new Request(method, url, body.toString(), headers);
     }
 }

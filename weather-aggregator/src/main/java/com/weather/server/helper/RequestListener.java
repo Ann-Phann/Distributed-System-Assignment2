@@ -12,15 +12,21 @@ import com.weather.http.Request;
 import com.weather.server.AggregationServer;
 
 public class RequestListener implements Runnable {
-    private final AggregationServer server;
+    // private final AggregationServer server;
     private final ServerSocket serverSocket;
     private final PriorityBlockingQueue<RequestNode> requestQueue;
 
-    public RequestListener(AggregationServer server, ServerSocket serverSocket, PriorityBlockingQueue<RequestNode> requestQueue) {
-        this.server = server;
+    // public RequestListener(AggregationServer server, ServerSocket serverSocket, PriorityBlockingQueue<RequestNode> requestQueue) {
+    //     this.server = server;
+    //     this.serverSocket = serverSocket;
+    //     this.requestQueue = requestQueue;
+    // }
+
+    public RequestListener(ServerSocket serverSocket, PriorityBlockingQueue<RequestNode> requestQueue) {
         this.serverSocket = serverSocket;
         this.requestQueue = requestQueue;
     }
+
     @Override
     public void run() {
         System.out.println("RequestListener is running and listening for client connections.");
@@ -30,7 +36,7 @@ public class RequestListener implements Runnable {
             while (!Thread.currentThread().isInterrupted()) {
                 try {
                     // Accept a new client connection
-                    Socket clientSocket = serverSocket.accept();
+                    Socket clientSocket = serverSocket.accept(); // block + waiting for a connection
                     System.out.println("Client connected from: " + clientSocket.getInetAddress());
 
                     // Read the request from the client's input stream
